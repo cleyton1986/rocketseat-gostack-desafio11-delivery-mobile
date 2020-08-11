@@ -43,6 +43,10 @@ interface Params {
   id: number;
 }
 
+interface Orders {
+  id: number;
+}
+
 interface Extra {
   id: number;
   name: string;
@@ -73,48 +77,102 @@ const FoodDetails: React.FC = () => {
 
   useEffect(() => {
     async function loadFood(): Promise<void> {
-      // Load a specific food with extras based on routeParams id
+      const response = await api.get<Food>(`foods/${routeParams.id}`);
+      const extraData = response.data.extras;
+      const foodExtras = extraData.map((extra: Extra) => {
+        return {
+          ...extra,
+          quantity: 0,
+        };
+      });
+      setExtras(foodExtras);
+      setFood({
+        ...response.data,
+        formattedPrice: formatValue(response.data.price),
+      });
     }
-
     loadFood();
-  }, [routeParams]);
+  }, [routeParams, foodQuantity]);
 
   function handleIncrementExtra(id: number): void {
-    // Increment extra quantity
+    const newExtra = extras.map((extra: Extra) => {
+      if (extra.id === id) {
+        return {
+          ...extra,
+          quantity: extra.quantity + 1,
+        };
+      }
+      return extra;
+    });
+    setExtras(newExtra);
   }
 
   function handleDecrementExtra(id: number): void {
-    // Decrement extra quantity
+    const newExtra = extras.map((extra: Extra) => {
+      if (extra.id === id) {
+        return {
+          ...extra,
+          quantity: extra.quantity - 1,
+        };
+      }
+
+      return extra;
+    });
+    setExtras(newExtra);
   }
 
   function handleIncrementFood(): void {
-    // Increment food quantity
+    setFoodQuantity(state => state + 1);
   }
 
   function handleDecrementFood(): void {
-    // Decrement food quantity
+    setFoodQuantity(state => (state === 1 ? 1 : state - 1));
   }
 
-  const toggleFavorite = useCallback(() => {
-    // Toggle if food is favorite or not
-  }, [isFavorite, food]);
+  const toggleFavorite = useCallback(async () => {
+    setIsFavorite(!isFavorite);
+  }, [isFavorite]);
 
   const cartTotal = useMemo(() => {
-    // Calculate cartTotal
+    const addExtra = extras.reduce((total, extra) => {
+      return total + extra.value * extra.quantity;
+    }, 0);
+
+    const valueProduct = food.price * foodQuantity;
+
+    return formatValue(addExtra + valueProduct);
   }, [extras, food, foodQuantity]);
 
   async function handleFinishOrder(): Promise<void> {
-    // Finish the order and save on the API
+    try {
+      const responseOrders = await api.get<Orders[]>('orders');
+
+      const orders = responseOrders.data;
+
+      const order = {
+        id: orders[orders.length - 1] ? orders[orders.length - 1].id + 1 : 1,
+        product_id: food.id,
+        name: food.id,
+        description: food.description,
+        price: food.price,
+        thumbnail_url: food.image_url,
+        extras,
+      };
+
+      await api.post('orders', order);
+
+      navigation.navigate('DashboardStack');
+    } catch (error) {
+      console.log(error);
+    }
   }
 
-  // Calculate the correct icon name
   const favoriteIconName = useMemo(
     () => (isFavorite ? 'favorite' : 'favorite-border'),
     [isFavorite],
   );
 
   useLayoutEffect(() => {
-    // Add the favorite icon on the right of the header bar
     navigation.setOptions({
       headerRight: () => (
         <MaterialIcon

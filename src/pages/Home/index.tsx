@@ -1,5 +1,5 @@
-import React from 'react';
-import { Image } from 'react-native';
+import React, { useEffect } from 'react';
+import { Image, Keyboard } from 'react-native';
 
 import { useNavigation } from '@react-navigation/native';
 
@@ -18,6 +18,10 @@ import Background from '../../assets/home-background.png';
 import Logo from '../../assets/logo.png';
 
 const Home: React.FC = () => {
+  useEffect(() => {
+    Keyboard.dismiss;
+  }, []);
+
   const navigation = useNavigation();
 
   async function handleNavigate(): Promise<void> {
